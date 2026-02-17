@@ -39,12 +39,23 @@ export async function POST(request: NextRequest) {
     if (setup) {
       try {
         const admin = await createAdmin(username, password)
-        await createSession()
-        return NextResponse.json({ 
+        const response = NextResponse.json({ 
           success: true, 
           message: 'Admin nalog kreiran',
           admin: { username: admin.username }
         })
+        
+        // Set cookie in response
+        const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
+        response.cookies.set('admin_session', token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 24 * 60 * 60
+        })
+        
+        return response
       } catch (error) {
         return NextResponse.json({ 
           success: false, 
@@ -73,14 +84,24 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
     
-    // Kreiranje sesije
-    await createSession()
-    
-    return NextResponse.json({ 
+    // Kreiraj response sa cookie-jem
+    const response = NextResponse.json({ 
       success: true, 
       message: 'Uspešno ste se prijavili',
       admin: { username: admin.username }
     })
+    
+    // Set cookie in response
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
+    response.cookies.set('admin_session', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60
+    })
+    
+    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ 

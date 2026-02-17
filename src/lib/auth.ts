@@ -1,9 +1,9 @@
 import { db } from './db'
 import { cookies } from 'next/headers'
-import { randomBytes, createHash } from 'crypto'
+import { createHash } from 'crypto'
 
 const SESSION_COOKIE_NAME = 'admin_session'
-const SESSION_DURATION_MS = 24 * 60 * 60 * 1000 // 24 sata
+const SESSION_DURATION_SEC = 24 * 60 * 60 // 24 sata u sekundama
 
 // Hash lozinke
 export function hashPassword(password: string): string {
@@ -17,15 +17,15 @@ export function verifyPassword(password: string, hash: string): boolean {
 
 // Kreiranje sesije
 export async function createSession(): Promise<string> {
-  const token = randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
+  const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
   
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
-    expires: expiresAt
+    path: '/',
+    maxAge: SESSION_DURATION_SEC
   })
   
   return token
@@ -33,16 +33,20 @@ export async function createSession(): Promise<string> {
 
 // Provera sesije
 export async function getSession(): Promise<{ isAdmin: boolean } | null> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
-  
-  if (!token) return null
-  
-  // Proveri da li postoji admin u bazi
-  const admin = await db.admin.findFirst()
-  if (!admin) return null
-  
-  return { isAdmin: true }
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
+    
+    if (!token) return null
+    
+    // Proveri da li postoji admin u bazi
+    const admin = await db.admin.findFirst()
+    if (!admin) return null
+    
+    return { isAdmin: true }
+  } catch {
+    return null
+  }
 }
 
 // Brisanje sesije (logout)
