@@ -1,6 +1,8 @@
-import { z } from 'z-ai-web-dev-sdk'
+import { Resend } from 'resend'
 
-// Email notifikacije koristeći z-ai-web-dev-sdk
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+// Email notifikacije koristeći Resend
 interface EmailOptions {
   to: string
   subject: string
@@ -9,14 +11,20 @@ interface EmailOptions {
 
 export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
   try {
-    // Koristimo z-ai-web-dev-sdk za slanje emailova
-    // U produkciji bismo koristili pravi email servis
-    console.log(`📧 Sending email to: ${to}`)
-    console.log(`📧 Subject: ${subject}`)
-    console.log(`📧 HTML length: ${html.length} characters`)
-    
-    // Simulacija uspešnog slanja
-    // U realnom okruženju, ovde bi bio poziv email API-ja
+    const { data, error } = await resend.emails.send({
+      from: 'Transport Vozila <onboarding@resend.dev>',
+      to: [to],
+      subject: subject,
+      html: html,
+    })
+
+    if (error) {
+      console.error('Resend error:', error)
+      return false
+    }
+
+    console.log(`✅ Email sent successfully to: ${to}`)
+    console.log(`📧 Email ID: ${data?.id}`)
     return true
   } catch (error) {
     console.error('Error sending email:', error)
@@ -52,26 +60,32 @@ export function generatePhaseChangeEmail(params: {
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: Arial, sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; border-radius: 10px; }
-        .content { background-color: #1a1a1a; padding: 30px; border-radius: 10px; margin-top: 20px; }
-        .phase-box { background-color: #252525; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; }
+        .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { background-color: #12121a; padding: 30px; border-radius: 0 0 10px 10px; }
+        .phase-box { background-color: #1a1a2e; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; }
         .countdown { font-size: 24px; color: #10b981; font-weight: bold; }
-        .tracking-number { background-color: #252525; padding: 15px; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; }
-        .footer { text-align: center; margin-top: 30px; color: #666; }
+        .tracking-number { background-color: #1a1a2e; padding: 15px; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; border: 1px solid #10b981; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .emoji { font-size: 24px; }
+        a { color: #10b981; text-decoration: none; }
+        .button { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
           <h1>🚛 Transport Vozila</h1>
-          <p>Ažuriranje Statusa</p>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Ažuriranje Statusa</p>
         </div>
         
         <div class="content">
-          <p>Poštovani/a ${customerName},</p>
+          <p style="font-size: 16px;">Poštovani/a <strong>${customerName}</strong>,</p>
           
           <p>Vaš transport vozila je prešao u novu fazu!</p>
           
@@ -80,22 +94,25 @@ export function generatePhaseChangeEmail(params: {
           </div>
           
           <div class="phase-box">
-            <p><strong>Vozilo:</strong> ${vehicleMake} ${vehicleModel}</p>
-            <p><strong>Prethodna faza:</strong> ${oldPhase}</p>
-            <p><strong>Trenutna faza:</strong> ${newPhase}</p>
+            <p style="margin: 0 0 10px 0;"><strong>🚗 Vozilo:</strong> ${vehicleMake} ${vehicleModel}</p>
+            <p style="margin: 0 0 10px 0;"><strong>⬅️ Prethodna faza:</strong> ${oldPhase}</p>
+            <p style="margin: 0;"><strong>➡️ Trenutna faza:</strong> <span style="color: #10b981;">${newPhase}</span></p>
           </div>
           
           <div class="phase-box">
-            <p><strong>Relacija:</strong> ${originLocation} → ${destinationLocation}</p>
-            <p><strong>Procenjeno vreme do završetka faze:</strong></p>
-            <p class="countdown">${daysToComplete} dana</p>
+            <p style="margin: 0 0 10px 0;"><strong>📍 Relacija:</strong> ${originLocation} → ${destinationLocation}</p>
+            <p style="margin: 0 0 5px 0;"><strong>⏱️ Procenjeno vreme do završetka faze:</strong></p>
+            <p class="countdown">${daysToComplete} ${daysToComplete === 1 ? 'dan' : 'dana'}</p>
           </div>
           
-          <p>Možete pratiti status vašeg transporta na našoj web stranici unosom broja za praćenje.</p>
+          <p style="text-align: center; margin-top: 25px;">
+            <a href="#" class="button">Prati Transport</a>
+          </p>
         </div>
         
         <div class="footer">
           <p>© 2024 Transport Vozila. Sva prava zadržana.</p>
+          <p style="font-size: 12px; color: #444;">Ovo je automatska poruka, ne odgovarajte na nju.</p>
         </div>
       </div>
     </body>
@@ -117,14 +134,17 @@ export function generateCompletionEmail(params: {
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: Arial, sans-serif; background-color: #0a0a0a; color: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; border-radius: 10px; }
-        .content { background-color: #1a1a1a; padding: 30px; border-radius: 10px; margin-top: 20px; }
-        .success-box { background-color: #252525; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; text-align: center; }
-        .tracking-number { background-color: #252525; padding: 15px; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; }
-        .footer { text-align: center; margin-top: 30px; color: #666; }
+        .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { background-color: #12121a; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background-color: #1a1a2e; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10b981; text-align: center; }
+        .tracking-number { background-color: #1a1a2e; padding: 15px; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; border: 1px solid #10b981; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
         .emoji { font-size: 48px; }
       </style>
     </head>
@@ -135,11 +155,11 @@ export function generateCompletionEmail(params: {
         </div>
         
         <div class="content">
-          <p>Poštovani/a ${customerName},</p>
+          <p style="font-size: 16px;">Poštovani/a <strong>${customerName}</strong>,</p>
           
           <div class="success-box">
             <p class="emoji">✅</p>
-            <p>Vaš transport je uspešno završen!</p>
+            <p style="font-size: 18px; margin: 10px 0;">Vaš transport je uspešno završen!</p>
           </div>
           
           <div class="tracking-number">
@@ -147,15 +167,18 @@ export function generateCompletionEmail(params: {
           </div>
           
           <div class="success-box">
-            <p><strong>Vozilo:</strong> ${vehicleMake} ${vehicleModel}</p>
-            <p><strong>Dostavljeno na:</strong> ${destinationLocation}</p>
+            <p style="margin: 0 0 10px 0;"><strong>🚗 Vozilo:</strong> ${vehicleMake} ${vehicleModel}</p>
+            <p style="margin: 0;"><strong>📍 Dostavljeno na:</strong> ${destinationLocation}</p>
           </div>
           
-          <p>Hvala vam što ste koristili naše usluge!</p>
+          <p style="text-align: center; margin-top: 20px; font-size: 16px;">
+            Hvala vam što ste koristili naše usluge! 🙏
+          </p>
         </div>
         
         <div class="footer">
           <p>© 2024 Transport Vozila. Sva prava zadržana.</p>
+          <p style="font-size: 12px; color: #444;">Ovo je automatska poruka, ne odgovarajte na nju.</p>
         </div>
       </div>
     </body>
