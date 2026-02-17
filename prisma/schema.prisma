@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Admin korisnik - samo jedan admin
+model Admin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Faze transporta
+model TransportPhase {
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?
+  order              Int      @default(0)
+  defaultDaysToComplete Int    @default(5)
+  color              String   @default("#10b981")
+  iconName           String   @default("truck")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  transports         Transport[]
+}
+
+// Transport vozila
+model Transport {
+  id              String   @id @default(cuid())
+  trackingNumber  String   @unique
+  customerEmail   String
+  customerName    String
+  vehicleMake     String
+  vehicleModel    String
+  vehicleYear     String?
+  vehicleVin      String?
+  originLocation  String
+  destinationLocation String
+  currentPhaseId  String
+  currentPhase    TransportPhase @relation(fields: [currentPhaseId], references: [id])
+  status          String   @default("active") // active, completed, cancelled
+  phaseStartedAt  DateTime @default(now())
+  daysToCompletePhase Int  @default(5)
+  notes           String?
+  estimatedDelivery DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  phaseHistory    PhaseHistory[]
+}
+
+// Istorija promena faza
+model PhaseHistory {
+  id           String   @id @default(cuid())
+  transportId  String
+  transport    Transport @relation(fields: [transportId], references: [id], onDelete: Cascade)
+  phaseId      String
+  phaseName    String
+  changedAt    DateTime @default(now())
+  notes        String?
+  daysInPhase  Int?
+}
